@@ -41,7 +41,6 @@ export class ResponseInterceptor implements NestInterceptor {
   errorHandler(exception: HttpException, context: ExecutionContext) {
     const ctx = context.switchToHttp();
     const response = ctx.getResponse();
-    // const request = ctx.getRequest();
 
     const status =
       exception instanceof HttpException
@@ -50,7 +49,8 @@ export class ResponseInterceptor implements NestInterceptor {
 
     const message =
       env.NODE_ENV == 'development'
-        ? exception.message
+        ? (exception.getResponse() as any)?.message.join(', ') ||
+          exception.message
         : 'Hubo un error interno';
 
     const generalResponse: GeneralResponse<null> = {
