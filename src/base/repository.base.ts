@@ -59,6 +59,16 @@ export class RepositoryBase<
     });
     return response as TResponse;
   }
+  async findWithPagination(
+    page: number,
+    count: number,
+  ): Promise<[TResponse[], number]> {
+    const result = await this.repository.findAndCount({
+      skip: (page - 1) * count,
+      take: count,
+    });
+    return [result[0] as TResponse[], result[1]];
+  }
   async update(id: number, updateDto: TUpdateDto): Promise<UpdateResult> {
     return await this.repository.update({ id }, updateDto);
   }

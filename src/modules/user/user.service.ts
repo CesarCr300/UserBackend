@@ -7,6 +7,8 @@ import { ServiceBase } from '../../base/service.base';
 import { User } from './entities/user.entity';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { HashingUtil } from '../../utils/hashing';
+import { fromEntityToResponseManyAdapter } from './adapters/from-entity-to-response-many.adapter';
+import { PaginationDto } from '../../dtos/pagination.dto';
 
 @Injectable()
 export class UserService extends ServiceBase<
@@ -54,5 +56,22 @@ export class UserService extends ServiceBase<
     dto.password = await HashingUtil.hash(dto.password);
     await this._repository.create(dto);
     return;
+  }
+  async getWithPagination(pagination: PaginationDto) {
+    if (!pagination.page) pagination.page = 1;
+    if (!pagination.count) pagination.count = 10;
+
+    const entities = await this._repository.findWithPagination(
+      pagination.page,
+      pagination.count,
+    );
+
+    return {
+      result: entities[0].map((e) => fromEntityToResponseManyAdapter(e)),
+      totalItems: entities[1],
+      page: pagination.page,
+      pageSize: pagination.count,
+      totalPages: Math.ceil(entities[1] / pagination.count),
+    };
   }
 }
