@@ -6,15 +6,13 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from '../auth/guards/roles-auth.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../auth/enums/roles.enum';
+import { Public } from '../auth/utils/isPublic';
 
 @ApiTags('user')
 @Controller('user')
@@ -22,8 +20,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Roles(Role.Admin)
-  @UseGuards(RolesGuard)
+  @Public()
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }

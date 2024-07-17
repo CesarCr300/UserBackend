@@ -19,10 +19,9 @@ export class AuditorySuscriber
   ) {
     dataSource.subscribers.push(this);
   }
-  //   listenTo() {
-  //     return AuditoryEntity;
-  //   }
   beforeInsert(event: InsertEvent<AuditoryEntity>) {
+    if (!this.cls.get('user')) return;
+
     event.entity.createdBy = this.cls.get('user').sub;
   }
 
