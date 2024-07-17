@@ -45,15 +45,16 @@ export class ServiceBase<
   ) => any;
   protected _adapterFindAll: (e: TEntity) => TResponseFindAll;
   protected _adapterFindOne: (e: TEntity) => TResponseFindOne;
+  protected _repository: RepositoryBase<
+    T,
+    TEntity,
+    TFilterDto,
+    TCreateDto,
+    TUpdateDto
+  >;
 
   constructor(
-    protected _repository: RepositoryBase<
-      T,
-      TEntity,
-      TFilterDto,
-      TCreateDto,
-      TUpdateDto
-    >,
+    _repository: RepositoryBase<T, TEntity, TFilterDto, TCreateDto, TUpdateDto>,
     {
       requiresValidationInUpdate = true,
       requiresValidationInCreation = true,
@@ -72,6 +73,7 @@ export class ServiceBase<
       functionToCreateObjectToFindIfTheEntityAlreadyExists;
     this._adapterFindAll = adapterFindAll;
     this._adapterFindOne = adapterFindOne;
+    this._repository = _repository;
   }
 
   async findOne(

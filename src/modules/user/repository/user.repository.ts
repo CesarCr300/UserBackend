@@ -12,7 +12,7 @@ export class UserRepository extends RepositoryBase<
     type: User;
   },
   User,
-  UpdateUserDto,
+  Partial<User>,
   CreateUserDto,
   UpdateUserDto
 > {
