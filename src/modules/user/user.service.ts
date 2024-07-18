@@ -9,6 +9,7 @@ import { FilterUserDto } from './dto/filter-user.dto';
 import { HashingUtil } from '../../utils/hashing';
 import { fromEntityToResponseManyAdapter } from './adapters/from-entity-to-response-many.adapter';
 import { PaginationDto } from '../../dtos/pagination.dto';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class UserService extends ServiceBase<
@@ -23,7 +24,10 @@ export class UserService extends ServiceBase<
   CreateUserDto,
   UpdateUserDto
 > {
-  constructor(_repository: UserRepository) {
+  constructor(
+    _repository: UserRepository,
+    private readonly cls: ClsService,
+  ) {
     super(_repository, {
       article: 'el',
       resourceName: 'usuario',
@@ -38,11 +42,17 @@ export class UserService extends ServiceBase<
     });
   }
   async update(id: number, dto: UpdateUserDto): Promise<any> {
+    this.isTheSameUserFromTheToken(id);
+
     if (dto.password) {
       dto.password = await HashingUtil.hash(dto.password);
     }
 
     return await super.update(id, dto);
+  }
+  async remove(id: number): Promise<any> {
+    this.isTheSameUserFromTheToken(id);
+    return super.remove(id);
   }
   async create(dto: CreateUserDto): Promise<User> {
     const userFounded = await this._repository.findOne(
@@ -73,5 +83,14 @@ export class UserService extends ServiceBase<
       pageSize: pagination.count,
       totalPages: Math.ceil(entities[1] / pagination.count),
     };
+  }
+
+  private isTheSameUserFromTheToken(id: number): Promise<void> {
+    if (this.cls.get('user').sub !== id)
+      throw new HttpException(
+        'No tienes permisos sobre este usuario',
+        HttpStatus.FORBIDDEN,
+      );
+    return;
   }
 }
