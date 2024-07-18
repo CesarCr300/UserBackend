@@ -15,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Public } from '../auth/utils/isPublic';
 import { PaginationDto } from '../../dtos/pagination.dto';
+import { UpdatePasswordUserDto } from './dto/update-password-user.dto';
 
 @ApiTags('users')
 @Controller('/api/v1/users')
@@ -40,6 +41,11 @@ export class UserController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(+id, updateUserDto);
+  }
+
+  @Patch(':id/password')
+  updatePassword(@Param('id') id: string, @Body() dto: UpdatePasswordUserDto) {
+    return this.userService.updatePassword(+id, dto);
   }
 
   @Delete(':id')

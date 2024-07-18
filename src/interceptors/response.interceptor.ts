@@ -10,6 +10,7 @@ import { env } from 'process';
 import { Observable, catchError, map, throwError } from 'rxjs';
 
 import { GeneralResponse } from '../entities/general-response.entity';
+import { CustomHttpException } from '../entities/custom-http-exception.entity';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
@@ -38,22 +39,22 @@ export class ResponseInterceptor implements NestInterceptor {
     return generalResponse;
   }
 
-  errorHandler(exception: Error, context: ExecutionContext) {
+  errorHandler(exception: HttpException, context: ExecutionContext) {
     const ctx = context.switchToHttp();
     const response = ctx.getResponse();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const isCustomException =
+      CustomHttpException.isCustomHttpException(exception);
 
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : env.NODE_ENV == 'development'
-          ? (exception as any)?.response?.message.join(', ') ||
-            exception.message
-          : 'Hubo un error interno';
+    const status = isCustomException
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const message = CustomHttpException.isCustomHttpException(exception)
+      ? exception.message
+      : env.NODE_ENV != 'development'
+        ? (exception as any)?.response?.message?.join(', ') || exception.message
+        : 'Hubo un error interno';
 
     const generalResponse: GeneralResponse<null> = {
       statusCode: status,

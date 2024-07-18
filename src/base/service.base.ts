@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import {
   EntityTarget,
   FindManyOptions,
@@ -9,6 +9,7 @@ import {
 
 import { RepositoryBase } from './repository.base';
 import { EntityBase } from './entity.base';
+import { CustomHttpException } from '../entities/custom-http-exception.entity';
 
 interface IServiceBase<
   TEntity,
@@ -76,16 +77,19 @@ export class ServiceBase<
     this._repository = _repository;
   }
 
+  protected async throwExceptionNotFound() {
+    throw new CustomHttpException(
+      `No se ha encontrado ${this._article} ${this._resourceName}`,
+      HttpStatus.NOT_FOUND,
+    );
+  }
+
   async findOne(
     filter: TFilterDto,
     options: FindOneOptions<ObjectLiteral> = {},
   ): Promise<TResponseFindOne> {
     const response = await this._repository.findOne({ ...filter }, options);
-    if (response == null)
-      throw new HttpException(
-        `No se ha encontrado ${this._article} ${this._resourceName}`,
-        HttpStatus.NOT_FOUND,
-      );
+    if (response == null) this.throwExceptionNotFound();
     return this._adapterFindOne(response);
   }
 
@@ -107,7 +111,7 @@ export class ServiceBase<
         filterToKnowIfAlreadyExists,
       );
       if (entityFounded != null)
-        throw new HttpException(
+        throw new CustomHttpException(
           `${this._article} ${this._resourceName} ya existe`,
           HttpStatus.CONFLICT,
         );
@@ -119,7 +123,7 @@ export class ServiceBase<
 
   async update(id: number, dto: TUpdateDto) {
     if (Object.keys(dto).length == 0)
-      throw new HttpException(
+      throw new CustomHttpException(
         `No se estan registrando cambios en ${this._article} ${this._resourceName}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -136,7 +140,7 @@ export class ServiceBase<
         id: Not(id),
       });
       if (entityFounded != null)
-        throw new HttpException(
+        throw new CustomHttpException(
           `Ya existe un ${this._resourceName} con estos datos`,
           HttpStatus.CONFLICT,
         );
@@ -144,7 +148,7 @@ export class ServiceBase<
 
     const result = await this._repository.update(id, dto);
     if (result.affected == 0)
-      throw new HttpException(
+      throw new CustomHttpException(
         `Hubo un problema al actualizar ${this._article} ${this._resourceName}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -156,7 +160,7 @@ export class ServiceBase<
 
     const result = await this._repository.remove(id);
     if (result.affected == 0)
-      throw new HttpException(
+      throw new CustomHttpException(
         `Hubo un problema de eliminar ${this._article} ${this._resourceName}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -170,17 +174,14 @@ export class ServiceBase<
     });
 
     if (!entity) {
-      throw new HttpException(
-        `No se ha encontrado ${this._article} ${this._resourceName}`,
-        HttpStatus.NOT_FOUND,
-      );
+      this.throwExceptionNotFound();
     }
     try {
       await this._repository.removeWithEntity(entity);
 
       return null;
     } catch (error) {
-      throw new HttpException(
+      throw new CustomHttpException(
         `Hubo un problema de eliminar ${this._article} ${this._resourceName}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );

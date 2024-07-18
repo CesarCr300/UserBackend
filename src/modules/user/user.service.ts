@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,6 +10,8 @@ import { HashingUtil } from '../../utils/hashing';
 import { fromEntityToResponseManyAdapter } from './adapters/from-entity-to-response-many.adapter';
 import { PaginationDto } from '../../dtos/pagination.dto';
 import { ClsService } from 'nestjs-cls';
+import { UpdatePasswordUserDto } from './dto/update-password-user.dto';
+import { CustomHttpException } from '../../entities/custom-http-exception.entity';
 
 @Injectable()
 export class UserService extends ServiceBase<
@@ -44,11 +46,31 @@ export class UserService extends ServiceBase<
   async update(id: number, dto: UpdateUserDto): Promise<any> {
     this.isTheSameUserFromTheToken(id);
 
-    if (dto.password) {
-      dto.password = await HashingUtil.hash(dto.password);
+    return await super.update(id, dto);
+  }
+
+  async updatePassword(id: number, dto: UpdatePasswordUserDto): Promise<any> {
+    this.isTheSameUserFromTheToken(id);
+
+    const user = await this._repository.findOne({ id });
+    if (!user) {
+      this.throwExceptionNotFound();
     }
 
-    return await super.update(id, dto);
+    const isValidOldPassword = await HashingUtil.compare(
+      dto.password,
+      user.password,
+    );
+    if (!isValidOldPassword) {
+      throw new CustomHttpException(
+        'La contraseña ingresada no es correcta',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    dto.newPassword = await HashingUtil.hash(dto.newPassword);
+    return await this._repository.update(id, {
+      password: dto.newPassword,
+    } as any);
   }
   async remove(id: number): Promise<any> {
     this.isTheSameUserFromTheToken(id);
@@ -60,7 +82,10 @@ export class UserService extends ServiceBase<
       { where: [{ email: dto.email }, { username: dto.username }] },
     );
     if (userFounded) {
-      throw new HttpException('El usuario ya existe', HttpStatus.CONFLICT);
+      throw new CustomHttpException(
+        'El usuario ya existe',
+        HttpStatus.CONFLICT,
+      );
     }
 
     dto.password = await HashingUtil.hash(dto.password);
@@ -87,7 +112,7 @@ export class UserService extends ServiceBase<
 
   private isTheSameUserFromTheToken(id: number): Promise<void> {
     if (this.cls.get('user').sub !== id)
-      throw new HttpException(
+      throw new CustomHttpException(
         'No tienes permisos sobre este usuario',
         HttpStatus.FORBIDDEN,
       );
