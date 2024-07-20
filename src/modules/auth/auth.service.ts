@@ -12,8 +12,11 @@ export class AuthService {
     private _jwt: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string) {
-    const user = await this._userRepository.findOne({ email });
+  async validateUser(emailOrUsername: string, password: string) {
+    const user = await this._userRepository.findOne(
+      {},
+      { where: [{ email: emailOrUsername }, { username: emailOrUsername }] },
+    );
     if (user && (await HashingUtil.compare(password, user.password))) {
       return user;
     }
